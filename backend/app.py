@@ -2,34 +2,10 @@ from fastapi import FastAPI, WebSocket
 import asyncio
 import json
 from typing import List, Dict, Any
-
-from yt_dlp import YoutubeDL
+from playlist_service import fetch_playlist_items
+from categorizer import categorize_items
 
 app = FastAPI()
-
-def fetch_playlist_titles(url: str) -> List[str]:
-    """
-    Returns list of video titles from a YouTube playlist URL using yt-dlp.
-    This does NOT download any media; it only extracts metadata.
-    """
-    ydl_opts = {
-        "quiet": True,
-        "skip_download": True,
-        "extract_flat": True,       # don't resolve every video fully; faster
-        "dump_single_json": True,   # returns a single JSON result
-        "noplaylist": False,
-    }
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        
-        entries = info.get("entries", [])
-        titles = []
-        for item in entries:
-            
-            title = item.get("title")
-            if title:
-                titles.append(title)
-        return titles
 
 @app.websocket("/playlist-stream")
 async def playlist_stream(ws: WebSocket):
@@ -37,7 +13,7 @@ async def playlist_stream(ws: WebSocket):
     try:
         while True:
             msg = await ws.receive_text()
-            data: Dict[str, Any] = json.loads(msg)
+            data = json.loads(msg)
 
             if data.get("type") == "playlist_link":
                 url = (data.get("value") or "").strip()
@@ -46,23 +22,35 @@ async def playlist_stream(ws: WebSocket):
                     continue
 
                 try:
-                    titles: List[str] = await asyncio.to_thread(fetch_playlist_titles, url)
+                    items = await asyncio.to_thread(fetch_playlist_items, url)
+                    labels = categorize_items(items)
                 except Exception as e:
                     print(f"[ERROR] Failed to extract playlist: {e}")
                     await ws.send_text(json.dumps({"type": "error", "message": str(e)}))
                     continue
 
-                print("\n=== PLAYLIST TITLES ===")
-                for i, t in enumerate(titles, 1):
-                    print(f"{i:>2}. {t}")
-                print("=======================\n")
+                print("\n=== PLAYLIST METADATA ===")
+                for i, (item, label) in enumerate(zip(items, labels), 1):
+                    title = item.get("title")
+                    categories = item.get("categories") or []
+                    tags = item.get("tags") or []
 
-                preview = titles[:5]
+                    print(f"{i:>2}. {title}")
+                    print(f"    Predicted : {label}")
+                    print(f"    YT Cats   : {', '.join(categories) if categories else 'N/A'}")
+                    print(f"    Tags      : {', '.join(tags[:8]) if tags else 'N/A'}")
+                print("==========================\n")
+
+                # send preview back to frontend
+                preview_lines = [f"{t} — {lbl}" for t, lbl in zip([i["title"] for i in items[:5]], labels[:5])]
+                preview_str = "\n".join(preview_lines)
+
                 await ws.send_text(json.dumps({
                     "type": "success",
-                    "count": len(titles),
-                    "preview": preview
+                    "count": len(items),
+                    "preview": preview_str
                 }))
+
             else:
                 await ws.send_text(json.dumps({"type": "error", "message": "Unknown message type"}))
 
