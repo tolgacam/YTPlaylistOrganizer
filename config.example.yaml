@@ -1,0 +1,43 @@
+categories:
+- Music
+- Tutorials
+- Vlogs
+- Gaming
+- Reviews
+- News
+- Science & Tech
+- Podcasts
+- Other
+
+# Simple keyword/regex signals for the rule-based classifier
+rules:
+Music:
+- "\b(official video|lyrics?|MV|music video|track|album|cover)\b"
+Tutorials:
+- "\b(how to|tutorial|guide|step[- ]by[- ]step|walkthrough|course)\b"
+Vlogs:
+- "\b(vlog|day in the life|morning routine|travel diary)\b"
+Gaming:
+- "\b(gameplay|let'?s play|speedrun|ranked|walkthrough|boss fight)\b"
+Reviews:
+- "\b(review|hands[- ]on|first look|unboxing|impressions)\b"
+News:
+- "\b(news|breaking|update|announcement|press conference)\b"
+Science & Tech:
+- "\b(tech|programming|AI|machine learning|science|physics|math|code)\b"
+Podcasts:
+- "\b(podcast|episode \d+|guest|interview|longform)\b"
+
+# Fallback category if nothing matches
+fallback: Other
+
+zeroshot_labels:
+- Music
+- Tutorials
+- Vlogs
+- Gaming
+- Reviews
+- News
+- Science & Tech
+- Podcasts
+- Other

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Playlist Organizer — Link Input</title>
+<style>
+:root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+body { margin: 0; background: #0b1020; color: #e6e8ef; display: grid; place-items: center; min-height: 100vh; }
+.card { width: min(720px, 92vw); background: #121a36; border: 1px solid #2a3765; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+h1 { margin: 0 0 8px; font-size: 1.3rem; }
+p { margin: 0 0 16px; color: #aab1c8; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+input[type="url"] { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #33406d; background: #0d162f; color: #e6e8ef; outline: none; }
+input[type="url"]:focus { border-color: #6ea8fe; box-shadow: 0 0 0 3px rgba(110,168,254,.25); }
+button { padding: 12px 16px; border: none; border-radius: 10px; background: #6ea8fe; color: #0b1020; font-weight: bold; cursor: pointer; }
+button:hover { background: #4f90f5; }
+.status { margin-left: 10px; font-size: .9rem; color: #aab1c8; }
+.log { margin-top: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; color: #b8c1ff; }
+</style>
+</head>
+<body>
+<main class="card">
+<h1>Smart Playlist Organizer</h1>
+<p>Paste your playlist link and click the button to send it to the backend.</p>
+<div class="row">
+<input id="playlistUrl" type="url" placeholder="https://www.youtube.com/playlist?list=..." autocomplete="off" spellcheck="false" />
+<button id="sendBtn">Send</button>
+</div>
+<div class="status" id="status">Not sent yet.</div>
+<div class="log" id="log"></div>
+</main>
+
+<script>
+const WS_URL = 'ws://127.0.0.1:8000/playlist-stream';
+
+const inputEl = document.getElementById('playlistUrl');
+const sendBtn = document.getElementById('sendBtn');
+const statusEl = document.getElementById('status');
+const logEl = document.getElementById('log');
+
+let ws;
+
+function connect() {
+ws = new WebSocket(WS_URL);
+
+ws.addEventListener('open', () => {
+statusEl.textContent = 'Connected to backend. Ready to send.';
+});
+
+ws.addEventListener('close', () => {
+statusEl.textContent = 'Disconnected from backend.';
+});
+
+ws.addEventListener('error', () => {
+statusEl.textContent = 'Error connecting to backend.';
+});
+
+ws.addEventListener('message', (evt) => {
+logEl.textContent = 'Backend says: ' + evt.data;
+});
+}
+
+connect();
+
+sendBtn.addEventListener('click', () => {
+const value = inputEl.value.trim();
+if (!value) {
+statusEl.textContent = 'Please enter a link first.';
+return;
+}
+if (!ws || ws.readyState !== WebSocket.OPEN) {
+statusEl.textContent = 'Not connected to backend.';
+return;
+}
+const payload = { type: 'playlist_link', value, ts: Date.now() };
+ws.send(JSON.stringify(payload));
+statusEl.textContent = 'Sent link to backend!';
+});
+</script>
+</body>
+</html>
