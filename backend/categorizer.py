@@ -5,14 +5,66 @@ from typing import Dict, List, Optional
 
 LABELS = ["Music", "Tutorial", "Vlog", "Gaming", "Podcast", "News", "Education", "Other"]
 
-KEYWORDS: Dict[str, List[str]] = {
-    "Music":     ["official video", "lyrics", "audio", "remix", "live session", "music video", "mv", "instrumental", "cover", "Music"],
-    "Tutorial":  ["how to", "tutorial", "guide", "step by step", "walkthrough", "fix", "learn", "course", "setup", "Tutorial"],
-    "Vlog":      ["vlog", "day in the life", "travel vlog", "morning routine", "daily"],
-    "Gaming":    ["gameplay", "let's play", "lets play", "walkthrough", "speedrun", "patch notes", "ranked", "gaming"],
-    "Podcast":   ["podcast", "episode", "ep.", "interview", "clip", "highlights"],
-    "News":      ["breaking", "news", "update", "press conference"],
-    "Education": ["lecture", "khan academy", "university", "lesson", "explained"],
+KEYWORDS: Dict[str, Dict[str, int]] = {
+    "Music": {
+        "official video": 3,
+        "lyrics": 3,
+        "audio": 1,
+        "remix": 1,
+        "live": 1,
+        "live session": 1,
+        "music video": 1,
+        "mv": 1,
+        "instrumental": 1,
+        "cover": 3,
+        "music": 3,
+    },
+    "Tutorial": {
+        "how to": 1,
+        "tutorial": 3,
+        "guide": 1,
+        "step by step": 1,
+        "walkthrough": 1,
+        "fix": 1,
+        "learn": 1,
+        "course": 1,
+        "setup": 1,
+    },
+    "Vlog": {
+        "vlog": 10,
+        "day in the life": 3,
+        "travel vlog": 5,
+        "morning routine": 3,
+        "daily": 1,
+    },
+    "Gaming": {
+        "gameplay": 3,
+        "let's play": 3,
+        "lets play": 3,
+        "walkthrough": 1,
+        "speedrun": 3,
+        "ranked": 2,
+        "gaming": 5,
+    },
+    "Podcast": {
+        "podcast": 12,
+        "episode": 2,
+        "ep.": 2,
+        "interview": 1,
+    },
+    "News": {
+        "breaking": 1,
+        "news": 1,
+        "update": 1,
+        "press conference": 1,
+    },
+    "Education": {
+        "education": 2,
+        "lecture": 2,
+        "university": 2,
+        "lesson": 1,
+        "explained": 1,
+    },
 }
 
 WORD_RE = re.compile(r"[a-z0-9']+")
@@ -26,16 +78,16 @@ def _text_blob(title: str, tags: Optional[List[str]], categories: Optional[List[
     if categories: parts.append(" ".join(categories))
     return _norm(" ".join(parts))
 
-def _score_keywords(text: str, keywords: List[str]) -> int:
+def _score_keywords(text: str, keywords: Dict[str, int]) -> int:
     score = 0
-    for kw in keywords:
+    for kw, weight in keywords.items():
         kw = kw.lower()
         if " " in kw:
             if kw in text:
-                score += 2
+                score += weight
         else:
             if re.search(rf"(^|[^a-z0-9]){re.escape(kw)}([^a-z0-9]|$)", text):
-                score += 1
+                score += weight
     return score
 
 def _label_from_youtube_categories(categories: Optional[List[str]]) -> Optional[str]:
